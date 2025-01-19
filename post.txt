@@ -1,0 +1,15 @@
+G90 G94 (absolute positioning, feed per min)
+G17 (XY plane selection)
+G20 (inch)
+M8 (Coolant On)
+M7 (air on)
+S8000 M3  (spindle RPM, enable spindle)
+G54 (work offset)
+G0 X0.000 Y0.0000 Z0.000
+M6 T1
+S8000
+F10
+G43 H1 Z1
+G1 Z-0.100
+G0 Z
+M30

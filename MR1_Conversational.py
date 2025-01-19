@@ -1,6 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 
+
+# create post_file in same directory as this script
+post_file = "post.txt"
+
 # Create the main window
 root = tk.Tk()
 root.title("MR1 Conversational")
@@ -142,10 +146,13 @@ z_end_entry.insert(0, "-0.100")
 spiral_var = tk.BooleanVar()
 rectangular_var = tk.BooleanVar()
 rectangular_var.set(True)
-
+global face_mode
+face_mode = "rectangular"
 
 def on_spiral_check():
+    global face_mode
     if spiral_var.get():
+        face_mode = "spiral"
         rectangular_var.set(False)
         image = tk.PhotoImage(file="source_images/face_spiral.png")
         canvas = tk.Canvas(face_tab, width=300, height=300)
@@ -154,7 +161,9 @@ def on_spiral_check():
         canvas.grid(row=10, column=1, columnspan=9, padx=2, pady=10, sticky="ew")
 
 def on_rectangular_check():
+    global face_mode
     if rectangular_var.get():
+        face_mode = "rectangular"
         spiral_var.set(False)
         image = tk.PhotoImage(file="source_images/face_rectangle.png")
         canvas = tk.Canvas(face_tab, width=300, height=300)
@@ -269,6 +278,50 @@ def post():
     # get name of each tab
     tab_name = tab_control.tab(tab, "text")
     print("Tab Name:", tab_name)
+
+    if tab_name == "Face":
+        print("X Start:", x_start_entry.get())
+        print("X End:", x_end_entry.get())
+        print("Y Start:", y_start_entry.get())
+        print("Y End:", y_end_entry.get())
+        print("Stepover:", stepover_entry.get())
+        print("Z Start:", z_start_entry.get())
+        print("Depth of cut:", depth_entry.get())
+        print("Z End:", z_end_entry.get())
+
+        if face_mode == "rectangular":
+            print("Rectangular button selected!")
+        elif face_mode == "spiral":
+            print("Spiral button selected!")
+            
+        # open post file and write some lines
+        with open(post_file, "w") as file:
+
+
+
+            file.write("G90 G94 (absolute positioning, feed per min)\n")
+            file.write("G17 (XY plane selection)\n")
+            file.write("G20 (inch)\n")
+
+            
+            # if coolant is on, write M8 and add comment in g code 
+            if coolant_state:
+                file.write("M8 (Coolant On)\n")
+            # if air is on, write M7
+            if air_state == True:
+                file.write("M7 (air on)\n")
+
+            # set spindle speed and turn on spindle
+            file.write(f"S{spindle_rpm_entry.get()} M3  (spindle RPM, enable spindle)\n")
+            file.write(f"{work_offset_entry.get()} (work offset)\n")
+            file.write("G0 X" + x_start_entry.get() + " Y" + y_start_entry.get() + " Z" + z_start_entry.get() + "\n")
+            file.write("M6 T1\n")
+            file.write("S" + spindle_rpm_entry.get() + "\n")
+            file.write("F" + feedrate_entry.get() + "\n")
+            file.write("G43 H1 Z1\n")
+            file.write("G1 Z" + z_end_entry.get() + "\n")
+            file.write("G0 Z" + z_clear_entry.get() + "\n")
+            file.write("M30\n")
 
 
     pass
