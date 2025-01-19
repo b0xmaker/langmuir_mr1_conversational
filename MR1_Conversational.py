@@ -15,37 +15,46 @@ title_label = ttk.Label(left_frame, text="Title:")
 title_label.pack(anchor=tk.W, pady=5)
 title_entry = ttk.Entry(left_frame)
 title_entry.pack(fill=tk.X, pady=5)
+title_entry.insert(0, "Program1")
 
 # Add labels and entries for the left side controls
 work_offset_label = ttk.Label(left_frame, text="Work Offset")
 work_offset_label.pack(anchor=tk.W, pady=5)
 work_offset_entry = ttk.Entry(left_frame)
 work_offset_entry.pack(fill=tk.X, pady=5)
+work_offset_entry.insert(0, "G54")
 
-tool_label = ttk.Label(left_frame, text="Tool")
+tool_label = ttk.Label(left_frame, text="Tool Diameter")
 tool_label.pack(anchor=tk.W, pady=5)
 tool_entry = ttk.Entry(left_frame)
 tool_entry.pack(fill=tk.X, pady=5)
+tool_entry.insert(0, "0.5")
+
 
 spindle_rpm_label = ttk.Label(left_frame, text="Spindle RPM")
 spindle_rpm_label.pack(anchor=tk.W, pady=5)
 spindle_rpm_entry = ttk.Entry(left_frame)
 spindle_rpm_entry.pack(fill=tk.X, pady=5)
+spindle_rpm_entry.insert(0, "8000")
+
 
 feedrate_label = ttk.Label(left_frame, text="Feedrate")
 feedrate_label.pack(anchor=tk.W, pady=5)
 feedrate_entry = ttk.Entry(left_frame)
 feedrate_entry.pack(fill=tk.X, pady=5)
+feedrate_entry.insert(0, "10")
 
 z_feedrate_label = ttk.Label(left_frame, text="Z Feedrate")
 z_feedrate_label.pack(anchor=tk.W, pady=5)
 z_feedrate_entry = ttk.Entry(left_frame)
 z_feedrate_entry.pack(fill=tk.X, pady=5)
+z_feedrate_entry.insert(0, "5")
 
 z_clear_label = ttk.Label(left_frame, text="Z Clear")
 z_clear_label.pack(anchor=tk.W, pady=5)
 z_clear_entry = ttk.Entry(left_frame)
 z_clear_entry.pack(fill=tk.X, pady=5)
+z_clear_entry.insert(0, "3")
 
 # Create a tab control
 tab_control = ttk.Notebook(root)
@@ -53,17 +62,17 @@ face_tab = ttk.Frame(tab_control)
 profile_tab = ttk.Frame(tab_control)
 pocket_tab = ttk.Frame(tab_control)
 drill_tab = ttk.Frame(tab_control)
-thread_tab = ttk.Frame(tab_control)
-engrave_tab = ttk.Frame(tab_control)
-dxf_tab = ttk.Frame(tab_control)
+#thread_tab = ttk.Frame(tab_control)
+#engrave_tab = ttk.Frame(tab_control)
+#dxf_tab = ttk.Frame(tab_control)
 
 tab_control.add(face_tab, text="Face")
 tab_control.add(profile_tab, text="Profile")
 tab_control.add(pocket_tab, text="Pocket")
 tab_control.add(drill_tab, text="Drill")
-tab_control.add(thread_tab, text="Thread Mill")
-tab_control.add(engrave_tab, text="Engrave")
-tab_control.add(dxf_tab, text="DXF")
+#tab_control.add(thread_tab, text="Thread Mill")
+#tab_control.add(engrave_tab, text="Engrave")
+#tab_control.add(dxf_tab, text="DXF")
 tab_control.pack(expand=1, fill="both")
 
 # Configure the grid
@@ -81,44 +90,53 @@ face_tab.columnconfigure(10, weight=1)
 
 # Add input fields for Face tab
 x_start_label = ttk.Label(face_tab, text="X Start")
-x_start_label.grid(row=1, column=0, padx=2, pady=10, sticky="w")
+x_start_label.grid(row=0, column=0, padx=2, pady=10, sticky="w")
 x_start_entry = ttk.Entry(face_tab, width=5)
-x_start_entry.grid(row=1, column=1, padx=2, pady=10, sticky="ew")
+x_start_entry.grid(row=1, column=0, padx=2, pady=10, sticky="ew")
+x_start_entry.insert(0, "0.000")
 
 x_end_label = ttk.Label(face_tab, text="X End")
-x_end_label.grid(row=1, column=4, padx=2, pady=10, sticky="w")
+x_end_label.grid(row=0, column=7, padx=2, pady=10, sticky="w")
 x_end_entry = ttk.Entry(face_tab, width=5)
-x_end_entry.grid(row=1, column=5, padx=2, pady=10, sticky="ew")
+x_end_entry.grid(row=1, column=7, padx=2, pady=10, sticky="ew")
+x_end_entry.insert(0, "2.000")
 
 y_start_label = ttk.Label(face_tab, text="Y Start")
-y_start_label.grid(row=1, column=7, padx=2, pady=10, sticky="w")
+y_start_label.grid(row=9, column=11, padx=2, pady=10, sticky="w")
 y_start_entry = ttk.Entry(face_tab, width=5)
-y_start_entry.grid(row=1, column=8, padx=2, pady=10, sticky="ew")
+y_start_entry.grid(row=9, column=12, padx=2, pady=10, sticky="ew")
+y_start_entry.insert(0, "0")
+y_start_entry.insert(0, "0.000")
 
 y_end_label = ttk.Label(face_tab, text="Y End")
-y_end_label.grid(row=7, column=7, padx=2, pady=10, sticky="w")
+y_end_label.grid(row=11, column=11, padx=2, pady=10, sticky="w")
 y_end_entry = ttk.Entry(face_tab, width=5)
-y_end_entry.grid(row=7, column=8, padx=2, pady=10, sticky="ew")
+y_end_entry.grid(row=11, column=12, padx=2, pady=10, sticky="ew")
+y_end_entry.insert(0, "2.000")
 
 stepover_label = ttk.Label(face_tab, text="Stepover")
-stepover_label.grid(row=8, column=11, padx=2, pady=10, sticky="w")
+stepover_label.grid(row=10, column=11, padx=2, pady=10, sticky="w")
 stepover_entry = ttk.Entry(face_tab, width=5)
-stepover_entry.grid(row=8, column=12, padx=2, pady=10, sticky="ew")
+stepover_entry.grid(row=10, column=12, padx=2, pady=10, sticky="ew")
+stepover_entry.insert(0, "0.100")
 
 z_start_label = ttk.Label(face_tab, text="Z Start")
 z_start_label.grid(row=11, column=0, padx=2, pady=10, sticky="w")
 z_start_entry = ttk.Entry(face_tab, width=5)
 z_start_entry.grid(row=11, column=1, padx=2, pady=10, sticky="ew")
+z_start_entry.insert(0, "0.000")
 
 depth_label = ttk.Label(face_tab, text="Depth of cut")
-depth_label.grid(row=13, column=0, padx=2, pady=10, sticky="w")
+depth_label.grid(row=12, column=5, padx=2, pady=10, sticky="w")
 depth_entry = ttk.Entry(face_tab, width=5)
-depth_entry.grid(row=13, column=1, padx=2, pady=10, sticky="ew")
+depth_entry.grid(row=12, column=6, padx=2, pady=10, sticky="ew")
+depth_entry.insert(0, "0.100")
 
 z_end_label = ttk.Label(face_tab, text="Z End")
-z_end_label.grid(row=11, column=5, padx=2, pady=10, sticky="w")
+z_end_label.grid(row=13, column=0, padx=2, pady=10, sticky="w")
 z_end_entry = ttk.Entry(face_tab, width=5)
-z_end_entry.grid(row=11, column=6, padx=2, pady=10, sticky="ew")
+z_end_entry.grid(row=13, column=1, padx=2, pady=10, sticky="ew")
+z_end_entry.insert(0, "-0.100")
 
 
 spiral_var = tk.BooleanVar()
@@ -133,7 +151,7 @@ def on_spiral_check():
         canvas = tk.Canvas(face_tab, width=300, height=300)
         canvas.create_image(0, 0, anchor=tk.NW, image=image)
         canvas.image = image  # Keep a reference to avoid garbage collection
-        canvas.grid(row=8, column=1, columnspan=9, padx=2, pady=10, sticky="ew")
+        canvas.grid(row=10, column=1, columnspan=9, padx=2, pady=10, sticky="ew")
 
 def on_rectangular_check():
     if rectangular_var.get():
@@ -142,12 +160,12 @@ def on_rectangular_check():
         canvas = tk.Canvas(face_tab, width=300, height=300)
         canvas.create_image(0, 0, anchor=tk.NW, image=image)
         canvas.image = image  # Keep a reference to avoid garbage collection
-        canvas.grid(row=8, column=1, columnspan=9, padx=2, pady=10, sticky="ew")
+        canvas.grid(row=10, column=1, columnspan=9, padx=2, pady=10, sticky="ew")
 
 spiral_check = ttk.Checkbutton(face_tab, text="Spiral", variable=spiral_var, command=on_spiral_check)
-spiral_check.grid(row=9, column=0, padx=2, pady=10, sticky="w")
+spiral_check.grid(row=0, column=10, padx=2, pady=10, sticky="w")
 rectangular_check = ttk.Checkbutton(face_tab, text="Rectangular", variable=rectangular_var, command=on_rectangular_check)
-rectangular_check.grid(row=9, column=1, padx=2, pady=10, sticky="w")
+rectangular_check.grid(row=1, column=10, padx=2, pady=10, sticky="w")
 
 # Add input fields for Profile tab:
 # X Profile Start, X Profile End, Y Profile Start, Y Profile End, Z Profile Start, Z Profile End, Stepover, Depth of Cut
@@ -187,9 +205,9 @@ stepover_profile_entry = ttk.Entry(profile_tab)
 stepover_profile_entry.grid(row=7, column=4, padx=2, pady=10)
 
 depth_profile_label = ttk.Label(profile_tab, text="Depth of cut")
-depth_profile_label.grid(row=8, column=0, padx=2, pady=10)
+depth_profile_label.grid(row=9, column=0, padx=2, pady=10)
 depth_profile_entry = ttk.Entry(profile_tab)
-depth_profile_entry.grid(row=8, column=1, padx=2, pady=10)
+depth_profile_entry.grid(row=9, column=1, padx=2, pady=10)
 
 # Add input fields for Pocket tab:
 # X Width, Radius, Stepover, Y Height, Depth of Cut, Z Start, Z End, Z Clear
@@ -231,8 +249,34 @@ z_clear_entry.grid(row=8, column=1, padx=2, pady=10)
 button_frame = ttk.Frame(left_frame)
 button_frame.pack(fill=tk.X, pady=10)
 
-post_button = ttk.Button(button_frame, text="Post")
+# add routine to run when "Post" button is clicked
+def post():
+    print("Post button clicked")
+    print("Title:", title_entry.get())
+    print("Work Offset:", work_offset_entry.get())
+    print("Tool Diameter:", tool_entry.get())
+    print("Spindle RPM:", spindle_rpm_entry.get())
+    print("Feedrate:", feedrate_entry.get())
+    print("Z Feedrate:", z_feedrate_entry.get())
+    print("Z Clear:", z_clear_entry.get())
+    print("Coolant:", coolant_state)
+    print("Air:", air_state)
+
+    # Determine which tab is currently selected
+    tab = tab_control.index(tab_control.select())
+    print("Tab:", tab)
+
+    # get name of each tab
+    tab_name = tab_control.tab(tab, "text")
+    print("Tab Name:", tab_name)
+
+
+    pass
+
+post_button = ttk.Button(button_frame, text="Post", command=post)
 post_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+
+
 
 append_button = ttk.Button(button_frame, text="Append")
 append_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
