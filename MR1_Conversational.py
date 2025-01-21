@@ -149,6 +149,11 @@ rectangular_var = tk.BooleanVar()
 rectangular_var.set(True)
 global face_mode
 face_mode = "rectangular"
+image = tk.PhotoImage(file="source_images/face_rectangle.png")
+canvas = tk.Canvas(face_tab, width=300, height=300)
+canvas.create_image(0, 0, anchor=tk.NW, image=image)
+canvas.image = image  # Keep a reference to avoid garbage collection
+canvas.grid(row=10, column=1, columnspan=9, padx=2, pady=10, sticky="ew")
 
 def on_spiral_check():
     global face_mode
@@ -172,10 +177,10 @@ def on_rectangular_check():
         canvas.image = image  # Keep a reference to avoid garbage collection
         canvas.grid(row=10, column=1, columnspan=9, padx=2, pady=10, sticky="ew")
 
-spiral_check = ttk.Checkbutton(face_tab, text="Spiral", variable=spiral_var, command=on_spiral_check)
-spiral_check.grid(row=0, column=10, padx=2, pady=10, sticky="w")
 rectangular_check = ttk.Checkbutton(face_tab, text="Rectangular", variable=rectangular_var, command=on_rectangular_check)
-rectangular_check.grid(row=1, column=10, padx=2, pady=10, sticky="w")
+rectangular_check.grid(row=0, column=10, padx=2, pady=10, sticky="w")
+spiral_check = ttk.Checkbutton(face_tab, text="Spiral", variable=spiral_var, command=on_spiral_check)
+spiral_check.grid(row=1, column=10, padx=2, pady=10, sticky="w")
 
 # Add input fields for Profile tab:
 # X Profile Start, X Profile End, Y Profile Start, Y Profile End, Z Profile Start, Z Profile End, Stepover, Depth of Cut
@@ -250,10 +255,10 @@ z_end_pocket_label = ttk.Label(pocket_tab, text="Z End")
 z_end_pocket_label.grid(row=7, column=0, padx=2, pady=10)
 z_end_pocket_entry = ttk.Entry(pocket_tab)
 z_end_pocket_entry.grid(row=7, column=1, padx=2, pady=10)
-z_clear_label = ttk.Label(pocket_tab, text="Z Clear")
-z_clear_label.grid(row=8, column=0, padx=2, pady=10)
-z_clear_entry = ttk.Entry(pocket_tab)
-z_clear_entry.grid(row=8, column=1, padx=2, pady=10)
+#z_clear_label = ttk.Label(pocket_tab, text="Z Clear")
+#z_clear_label.grid(row=8, column=0, padx=2, pady=10)
+#z_clear_entry = ttk.Entry(pocket_tab)
+#z_clear_entry.grid(row=8, column=1, padx=2, pady=10)
 
 # Add buttons below Z Clear
 button_frame = ttk.Frame(left_frame)
@@ -289,6 +294,7 @@ def post():
         print("Z Start:", z_start_entry.get())
         print("Depth of cut:", depth_entry.get())
         print("Z End:", z_end_entry.get())
+        print("Z Clear:", z_clear_entry.get())
 
         # get valyes from entries
         x_start = float(x_start_entry.get())
@@ -299,9 +305,16 @@ def post():
         z_start = float(z_start_entry.get())
         depth = float(depth_entry.get())
         z_end = float(z_end_entry.get())
+        depth = float(depth_entry.get())
         tool_diameter = float(tool_entry.get())
         z_feedrate = float(z_feedrate_entry.get())
         z_clear = float(z_clear_entry.get())
+        feedrate = float(feedrate_entry.get())
+
+        # Determine the number of Z passes needed
+        z_passes = int((z_start - z_end) / depth) + 1
+
+        commands = ""
 
         if face_mode == "rectangular":
             print("Rectangular button selected!")
@@ -309,13 +322,12 @@ def post():
             commands = f"(rectangular face)\n"
 
             # Move to z_start
-            commands += f"G0 Z{z_start:.4f}\n"
+            commands += f"G0 Z{z_start:.4f} (move to Z start)\n"
 
             # Move to x_start, y_start
-            commands += f"G0 X{x_start:.4f} Y{y_start:.4f}\n"
+            commands += f"G0 X{x_start:.4f} Y{y_start:.4f} (move to X/Y start)\n"
 
-            # Determine the number of Z passes needed
-            z_passes = int((z_start - z_end) / depth) + 1
+            
             current_z = z_start
 
             for z in range(z_passes):
@@ -323,18 +335,18 @@ def post():
                 if current_z < z_end:
                     current_z = z_end  # Clamp to final Z depth
 
-                commands += f"G1 Z{current_z:.4f} F{z_feedrate:.4f}\n"  # Lower to cutting depth
+                commands += f"G1 Z{current_z:.4f} (move to next cutting depth)\n"  # Lower to cutting depth
 
                 # Generate raster pattern with CW/CCW transitions
                 y = y_start
                 direction = 1  # 1 for forward, -1 for reverse
                 while y <= y_end:
                     # Move along Y axis
-                    commands += f"G1 Y{y} F{feedrate_entry}\n"
+                    commands += f"G1 Y{y:.4f}\n"
 
                     # Move along X axis
                     x_target = x_end if direction == 1 else x_start
-                    commands += f"G1 X{x_target:.4f} F{feedrate_entry:.4f}\n"
+                    commands += f"G1 X{x_target:.4f}\n"
 
                     # Increment Y for the next line
                     y += stepover
@@ -349,88 +361,96 @@ def post():
                     radius = stepover / 2  # Set radius for the circular move
 
                     if direction == 1:  # Forward direction, use CW (G2)
-                        commands += f"G2 X{x_next:.4f} Y{y_next:.4f} I{-radius} J{radius}\n"
+                        commands += f"G2 X{x_next:.4f} Y{y_next:.4f} I{-radius} J{radius} (CW move)\n"
                     else:  # Reverse direction, use CCW (G3)
-                        commands += f"G3 X{x_next:.4f} Y{y_next:.4f} I{radius} J{-radius}\n"
+                        commands += f"G3 X{x_next:.4f} Y{y_next:.4f} I{radius} J{-radius} (CCW move)\n"
 
                     direction *= -1  # Reverse direction for the next raster line
 
-            # Retract tool
-            commands += f"G0 Z{z_clear}\n"
-
-
-
-
-
-
+            # Retract tool to safe Z height
+            commands += f"G0 Z{z_clear:.4f}\n"
 
 
         elif face_mode == "spiral":
             print("Spiral button selected!")
-            
-            # Start at center
-            center_x = (x_start + x_end) / 2
-            center_y = (y_start + y_end) / 2
+            commands += "(Spiral facing pattern)\n"
+
+            # Move to z_start
+            commands += f"G0 Z{z_start:.4f} (move to Z start)\n"
+
+            # Move to x_start, y_start
+            commands += f"G0 X{x_start:.4f} Y{y_start:.4f} (move to X/Y start)\n"
+
+            # Start at the current Z and move in steps toward z_end
             current_z = z_start
-
-            commands = "(rectangular face)\n"
-
-            commands += f"G0 Z{z_start}\n"  # Move to safe Z
-            commands += f"G0 X{center_x} Y{center_y}\n"  # Move to center
-
-            # Loop for depth
-            z_passes = int((z_start - z_end) / depth) + 1
-            for z in range(z_passes):
+            while current_z > z_end:
                 current_z -= depth
                 if current_z < z_end:
-                    current_z = z_end
+                    current_z = z_end  # Clamp to final Z depth
 
-                commands += f"G1 Z{current_z} F{feedrate_entry.get()}\n"  # Lower tool
+                commands += f"G1 Z{current_z:.4f} (move to next cutting depth)\n"  # Lower to cutting depth
 
-                # Generate spiral path (simplified)
-                radius = 0
-                while radius <= (x_end - x_start) / 2:
-                    for angle in range(0, 360, 10):  # Break circle into 10-degree increments
-                        x = center_x + radius * math.cos(math.radians(angle))
-                        y = center_y + radius * math.sin(math.radians(angle))
-                        commands += f"G1 X{x:.4f} Y{y:.4f} F{feedrate_entry}\n"
-                    radius += stepover
+                # Initialize the spiral pattern: start at the initial diameter and reduce step by step
+                current_x_start = x_start
+                current_x_end = x_end
+                current_y = y_start
 
-            # Retract tool
-            commands += f"G0 Z{z_clear_entry.get()}\n"
-        
-            
-        # open post file and write some lines
-        with open(post_file, "w") as file:
+                # Move back and forth in linear passes
+                while current_x_end > current_x_start:
+                    # Move from current_x_start to current_x_end along the X axis
+                    commands += f"G1 X{current_x_end:.4f} Y{current_y:.4f} F{feedrate:.4f} (move to X{current_x_end:.4f}, Y{current_y:.4f})\n"
+                    
+                    # Move vertically down after reaching x_end
+                    current_y -= stepover
+
+                    # If we reach the center, stop
+                    if current_x_end - current_x_start <= tool_diameter:
+                        break
+
+                    # Move back to current_x_start along the X axis
+                    commands += f"G1 X{current_x_start:.4f} Y{current_y:.4f} F{feedrate:.4f} (move to X{current_x_start:.4f}, Y{current_y:.4f})\n"
+                    
+                    # Move vertically up after reaching x_start
+                    current_y += stepover
+
+                    # Reduce the horizontal range (move closer to the center)
+                    current_x_start += tool_diameter / 2
+                    current_x_end -= tool_diameter / 2
+
+            # Retract tool to safe Z height
+            commands += f"G0 Z{z_clear:.4f} (retract to safe Z height)\n"
+                
+            # open post file and write some lines
+            with open(post_file, "w") as file:
 
 
 
-            file.write("G90 G94 (absolute positioning, feed per min)\n")
-            file.write("G17 (XY plane selection)\n")
-            file.write("G20 (inch)\n")
+                file.write("G90 G94 (absolute positioning, feed per min)\n")
+                file.write("G17 (XY plane selection)\n")
+                file.write("G20 (inch)\n")
 
-            
-            # if coolant is on, write M8 and add comment in g code 
-            if coolant_state:
-                file.write("M8 (Coolant On)\n")
-            # if air is on, write M7
-            if air_state == True:
-                file.write("M7 (air on)\n")
+                
+                # if coolant is on, write M8 and add comment in g code 
+                if coolant_state:
+                    file.write("M8 (Coolant On)\n")
+                # if air is on, write M7
+                if air_state == True:
+                    file.write("M7 (air on)\n")
 
-            # set spindle speed and turn on spindle
-            file.write(f"S{spindle_rpm_entry.get()} M3  (spindle RPM, enable spindle)\n")
-            file.write(f"{work_offset_entry.get()} (work offset)\n")
-            file.write("G0 X" + x_start_entry.get() + " Y" + y_start_entry.get() + " Z" + z_start_entry.get() + "\n")
-            file.write("M6 T1\n")
-            file.write("S" + spindle_rpm_entry.get() + "\n")
-            file.write("F" + feedrate_entry.get() + "\n")
-            file.write("G43 H1 Z1\n")
-            file.write("G1 Z" + z_end_entry.get() + "\n")
-            file.write("G0 Z" + z_clear_entry.get() + "\n")
+                # set spindle speed and turn on spindle
+                file.write(f"S{spindle_rpm_entry.get()} M3  (spindle RPM, enable spindle)\n")
+                file.write(f"{work_offset_entry.get()} (work offset)\n")
+                file.write("G0 X" + x_start_entry.get() + " Y" + y_start_entry.get() + " Z" + z_start_entry.get() + "\n")
+                file.write("M6 T1\n")
+                file.write("S" + spindle_rpm_entry.get() + "\n")
+                file.write("F" + feedrate_entry.get() + "\n")
+                file.write("G43 H1 Z1\n")
+                file.write("G1 Z" + z_end_entry.get() + "\n")
+                file.write("G0 Z" + z_clear_entry.get() + "\n")
 
-            file.write(commands)
+                file.write(commands)
 
-            file.write("M30\n")
+                file.write("M30\n")
 
 
     pass
