@@ -1,9 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
+import math
 
 
 # create post_file in same directory as this script
-post_file = "post.txt"
+post_file = "post.nc"
 
 # Create the main window
 root = tk.Tk()
@@ -289,10 +290,115 @@ def post():
         print("Depth of cut:", depth_entry.get())
         print("Z End:", z_end_entry.get())
 
+        # get valyes from entries
+        x_start = float(x_start_entry.get())
+        x_end = float(x_end_entry.get())
+        y_start = float(y_start_entry.get())
+        y_end = float(y_end_entry.get())
+        stepover = float(stepover_entry.get())
+        z_start = float(z_start_entry.get())
+        depth = float(depth_entry.get())
+        z_end = float(z_end_entry.get())
+        tool_diameter = float(tool_entry.get())
+        z_feedrate = float(z_feedrate_entry.get())
+        z_clear = float(z_clear_entry.get())
+
         if face_mode == "rectangular":
             print("Rectangular button selected!")
+
+            commands = f"(rectangular face)\n"
+
+            # Move to z_start
+            commands += f"G0 Z{z_start:.4f}\n"
+
+            # Move to x_start, y_start
+            commands += f"G0 X{x_start:.4f} Y{y_start:.4f}\n"
+
+            # Determine the number of Z passes needed
+            z_passes = int((z_start - z_end) / depth) + 1
+            current_z = z_start
+
+            for z in range(z_passes):
+                current_z -= depth
+                if current_z < z_end:
+                    current_z = z_end  # Clamp to final Z depth
+
+                commands += f"G1 Z{current_z:.4f} F{z_feedrate:.4f}\n"  # Lower to cutting depth
+
+                # Generate raster pattern with CW/CCW transitions
+                y = y_start
+                direction = 1  # 1 for forward, -1 for reverse
+                while y <= y_end:
+                    # Move along Y axis
+                    commands += f"G1 Y{y} F{feedrate_entry}\n"
+
+                    # Move along X axis
+                    x_target = x_end if direction == 1 else x_start
+                    commands += f"G1 X{x_target:.4f} F{feedrate_entry:.4f}\n"
+
+                    # Increment Y for the next line
+                    y += stepover
+
+                    # Check if we're done with all raster lines
+                    if y > y_end:
+                        break
+
+                    # Circular transition to next raster line
+                    x_next = x_target  # Maintain X position
+                    y_next = y  # Next Y position
+                    radius = stepover / 2  # Set radius for the circular move
+
+                    if direction == 1:  # Forward direction, use CW (G2)
+                        commands += f"G2 X{x_next:.4f} Y{y_next:.4f} I{-radius} J{radius}\n"
+                    else:  # Reverse direction, use CCW (G3)
+                        commands += f"G3 X{x_next:.4f} Y{y_next:.4f} I{radius} J{-radius}\n"
+
+                    direction *= -1  # Reverse direction for the next raster line
+
+            # Retract tool
+            commands += f"G0 Z{z_clear}\n"
+
+
+
+
+
+
+
+
         elif face_mode == "spiral":
             print("Spiral button selected!")
+            
+            # Start at center
+            center_x = (x_start + x_end) / 2
+            center_y = (y_start + y_end) / 2
+            current_z = z_start
+
+            commands = "(rectangular face)\n"
+
+            commands += f"G0 Z{z_start}\n"  # Move to safe Z
+            commands += f"G0 X{center_x} Y{center_y}\n"  # Move to center
+
+            # Loop for depth
+            z_passes = int((z_start - z_end) / depth) + 1
+            for z in range(z_passes):
+                current_z -= depth
+                if current_z < z_end:
+                    current_z = z_end
+
+                commands += f"G1 Z{current_z} F{feedrate_entry.get()}\n"  # Lower tool
+
+                # Generate spiral path (simplified)
+                radius = 0
+                while radius <= (x_end - x_start) / 2:
+                    for angle in range(0, 360, 10):  # Break circle into 10-degree increments
+                        x = center_x + radius * math.cos(math.radians(angle))
+                        y = center_y + radius * math.sin(math.radians(angle))
+                        commands += f"G1 X{x:.4f} Y{y:.4f} F{feedrate_entry}\n"
+                    radius += stepover
+
+            # Retract tool
+            commands += f"G0 Z{z_clear_entry.get()}\n"
+        
             
         # open post file and write some lines
         with open(post_file, "w") as file:
@@ -321,6 +427,9 @@ def post():
             file.write("G43 H1 Z1\n")
             file.write("G1 Z" + z_end_entry.get() + "\n")
             file.write("G0 Z" + z_clear_entry.get() + "\n")
+
+            file.write(commands)
+
             file.write("M30\n")
 
 
