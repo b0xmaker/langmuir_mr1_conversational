@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 import math
+import random
+import subprocess
 
 
 # create post_file in same directory as this script
@@ -104,7 +106,7 @@ x_end_label = ttk.Label(face_tab, text="X End")
 x_end_label.grid(row=0, column=7, padx=2, pady=10, sticky="w")
 x_end_entry = ttk.Entry(face_tab, width=5)
 x_end_entry.grid(row=1, column=7, padx=2, pady=10, sticky="ew")
-x_end_entry.insert(0, "2.000")
+x_end_entry.insert(0, "4.000")
 
 y_start_label = ttk.Label(face_tab, text="Y Start")
 y_start_label.grid(row=9, column=11, padx=2, pady=10, sticky="w")
@@ -123,7 +125,7 @@ stepover_label = ttk.Label(face_tab, text="Stepover")
 stepover_label.grid(row=10, column=11, padx=2, pady=10, sticky="w")
 stepover_entry = ttk.Entry(face_tab, width=5)
 stepover_entry.grid(row=10, column=12, padx=2, pady=10, sticky="ew")
-stepover_entry.insert(0, "0.100")
+stepover_entry.insert(0, "0.250")
 
 z_start_label = ttk.Label(face_tab, text="Z Start")
 z_start_label.grid(row=11, column=0, padx=2, pady=10, sticky="w")
@@ -319,7 +321,7 @@ def post():
         if face_mode == "rectangular":
             print("Rectangular button selected!")
 
-            commands = f"(rectangular face)\n"
+            
 
             # Move to z_start
             commands += f"G0 Z{z_start:.4f} (move to Z start)\n"
@@ -328,9 +330,9 @@ def post():
             commands += f"G0 X{x_start:.4f} Y{y_start:.4f} (move to X/Y start)\n"
 
             
+            # Start at the current Z and move in steps toward z_end
             current_z = z_start
-
-            for z in range(z_passes):
+            while current_z > z_end:
                 current_z -= depth
                 if current_z < z_end:
                     current_z = z_end  # Clamp to final Z depth
@@ -342,11 +344,11 @@ def post():
                 direction = 1  # 1 for forward, -1 for reverse
                 while y <= y_end:
                     # Move along Y axis
-                    commands += f"G1 Y{y:.4f}\n"
+                    commands += f"G1 Y{y:.4f} (linear move in Y)\n"
 
                     # Move along X axis
                     x_target = x_end if direction == 1 else x_start
-                    commands += f"G1 X{x_target:.4f}\n"
+                    commands += f"G1 X{x_target+(direction * tool_diameter):.4f} (linear move in X)\n"
 
                     # Increment Y for the next line
                     y += stepover
@@ -358,17 +360,21 @@ def post():
                     # Circular transition to next raster line
                     x_next = x_target  # Maintain X position
                     y_next = y  # Next Y position
-                    radius = stepover / 2  # Set radius for the circular move
+                    radius = tool_diameter / 4   # Set radius for the circular move
 
                     if direction == 1:  # Forward direction, use CW (G2)
-                        commands += f"G2 X{x_next:.4f} Y{y_next:.4f} I{-radius} J{radius} (CW move)\n"
+                        commands += f"G3 X{x_next+0.5:.4f} Y{y_next:.4f} I0 J{radius} (CW move)\n"
                     else:  # Reverse direction, use CCW (G3)
-                        commands += f"G3 X{x_next:.4f} Y{y_next:.4f} I{radius} J{-radius} (CCW move)\n"
+                        commands += f"G2 X{x_next-0.5:.4f} Y{y_next:.4f} I0 J{radius} (CCW move)\n"
 
                     direction *= -1  # Reverse direction for the next raster line
 
             # Retract tool to safe Z height
             commands += f"G0 Z{z_clear:.4f}\n"
+            print("done writing rectangular mode..")
+
+            # commands are:
+            print(commands)
 
 
         elif face_mode == "spiral":
@@ -398,7 +404,7 @@ def post():
                 # Move back and forth in linear passes
                 while current_x_end > current_x_start:
                     # Move from current_x_start to current_x_end along the X axis
-                    commands += f"G1 X{current_x_end:.4f} Y{current_y:.4f} F{feedrate:.4f} (move to X{current_x_end:.4f}, Y{current_y:.4f})\n"
+                    commands += f"G1 X{current_x_end:.4f} Y{current_y:.4f} (move to X{current_x_end:.4f}, Y{current_y:.4f})\n"
                     
                     # Move vertically down after reaching x_end
                     current_y -= stepover
@@ -408,7 +414,7 @@ def post():
                         break
 
                     # Move back to current_x_start along the X axis
-                    commands += f"G1 X{current_x_start:.4f} Y{current_y:.4f} F{feedrate:.4f} (move to X{current_x_start:.4f}, Y{current_y:.4f})\n"
+                    commands += f"G1 X{current_x_start:.4f} Y{current_y:.4f}  (move to X{current_x_start:.4f}, Y{current_y:.4f})\n"
                     
                     # Move vertically up after reaching x_start
                     current_y += stepover
@@ -421,36 +427,48 @@ def post():
             commands += f"G0 Z{z_clear:.4f} (retract to safe Z height)\n"
                 
             # open post file and write some lines
-            with open(post_file, "w") as file:
+            # force a new file to be created
+
+    
+        with open(post_file, "w") as file:
+            # force 
 
 
 
-                file.write("G90 G94 (absolute positioning, feed per min)\n")
-                file.write("G17 (XY plane selection)\n")
-                file.write("G20 (inch)\n")
+            file.write("G90 G94 (absolute positioning, feed per min)\n")
+            file.write("G17 (XY plane selection)\n")
+            file.write("G20 (inch)\n")
+            file.write("G28 G91 Z0 (return to home)\n")
+            file.write("G90 (absolute positioning)\n")
 
-                
-                # if coolant is on, write M8 and add comment in g code 
-                if coolant_state:
-                    file.write("M8 (Coolant On)\n")
-                # if air is on, write M7
-                if air_state == True:
-                    file.write("M7 (air on)\n")
 
-                # set spindle speed and turn on spindle
-                file.write(f"S{spindle_rpm_entry.get()} M3  (spindle RPM, enable spindle)\n")
-                file.write(f"{work_offset_entry.get()} (work offset)\n")
-                file.write("G0 X" + x_start_entry.get() + " Y" + y_start_entry.get() + " Z" + z_start_entry.get() + "\n")
-                file.write("M6 T1\n")
-                file.write("S" + spindle_rpm_entry.get() + "\n")
-                file.write("F" + feedrate_entry.get() + "\n")
-                file.write("G43 H1 Z1\n")
-                file.write("G1 Z" + z_end_entry.get() + "\n")
-                file.write("G0 Z" + z_clear_entry.get() + "\n")
+            
+            # if coolant is on, write M8 and add comment in g code 
+            if coolant_state:
+                file.write("M8 (Coolant On)\n")
+            # if air is on, write M7
+            if air_state == True:
+                file.write("M7 (air on)\n")
 
-                file.write(commands)
+            print("Writing to post file...")
 
-                file.write("M30\n")
+            # set spindle speed and turn on spindle
+            file.write(f"S{spindle_rpm_entry.get()} M3  (spindle RPM, enable spindle)\n")
+            file.write(f"{work_offset_entry.get()} (work offset)\n")
+            file.write("G0 X" + x_start_entry.get() + " Y" + y_start_entry.get() + " Z" + z_start_entry.get() + "\n")
+            file.write("M6 T1\n")
+            file.write("S" + spindle_rpm_entry.get() + "\n")
+            file.write("F" + feedrate_entry.get() + "\n")
+            file.write("G43 H1 Z1\n")
+            file.write("G1 Z" + z_end_entry.get() + "\n")
+            file.write("G0 Z" + z_clear_entry.get() + "\n")
+            
+
+            file.write(commands)
+
+            file.write("M30\n")
+
+            print("Done. File closed.")
 
 
     pass
@@ -462,6 +480,16 @@ post_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
 append_button = ttk.Button(button_frame, text="Append")
 append_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+
+# create button that opens output file when clicked
+def open_output():
+    print("Open button clicked")
+    subprocess.call(["open", "-a", "TextEdit", post_file])
+
+
+open_button = ttk.Button(button_frame, text="Open", command=open_output)
+open_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+
 
 coolant_state = True
 air_state = True
