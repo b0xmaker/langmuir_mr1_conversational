@@ -273,8 +273,8 @@ def post():
     print("Work Offset:", work_offset_entry.get())
     print("Tool Diameter:", tool_entry.get())
     print("Spindle RPM:", spindle_rpm_entry.get())
-    print("Feedrate:", feedrate_entry.get())
-    print("Z Feedrate:", z_feedrate_entry.get())
+    print("Feedrate (X & Y):", feedrate_entry.get())
+    print("Feedrate (Z):", z_feedrate_entry.get())
     print("Z Clear:", z_clear_entry.get())
     print("Coolant:", coolant_state)
     print("Air:", air_state)
@@ -484,7 +484,19 @@ append_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 # create button that opens output file when clicked
 def open_output():
     print("Open button clicked")
-    subprocess.call(["open", "-a", "TextEdit", post_file])
+
+    # open file as Mac
+    try:
+        subprocess.call(["open", "-a", "TextEdit", post_file])
+    except:
+
+        try:
+        # open file as Windows
+            subprocess.call(["notepad.exe", post_file])
+
+        # open file as Linux
+        except:
+            subprocess.call(["gedit", post_file])
 
 
 open_button = ttk.Button(button_frame, text="Open", command=open_output)
