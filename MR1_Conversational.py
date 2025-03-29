@@ -455,8 +455,8 @@ def post():
             # set spindle speed and turn on spindle
             file.write(f"S{spindle_rpm_entry.get()} M3  (spindle RPM, enable spindle)\n")
             file.write(f"{work_offset_entry.get()} (work offset)\n")
-            file.write("G0 X" + x_start_entry.get() + " Y" + y_start_entry.get() + " Z" + z_start_entry.get() + "\n")
-            file.write("M6 T1\n")
+            file.write("G0 X" + x_start_entry.get() + " Y" + y_start_entry.get() + " Z" + z_start_entry.get() + "(go to X / Y / Z start position)\n")
+            #file.write("M6 T1 (M6 \n")
             file.write("S" + spindle_rpm_entry.get() + "\n")
             file.write("F" + feedrate_entry.get() + "\n")
             file.write("G43 H1 Z1\n")
@@ -466,7 +466,7 @@ def post():
 
             file.write(commands)
 
-            file.write("M30\n")
+            file.write("M30 (program end)\n")
 
             print("Done. File closed.")
 
@@ -514,7 +514,7 @@ def toggle_coolant():
         coolant_button.config(text="Coolant OFF")
     coolant_state = not coolant_state
 
-coolant_button = ttk.Button(button_frame, text="Coolant OFF", command=toggle_coolant)
+coolant_button = ttk.Button(button_frame, text="Coolant ON", command=toggle_coolant)
 coolant_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
 
@@ -526,7 +526,7 @@ def toggle_air():
         air_button.config(text="Air OFF")
     air_state = not air_state
 
-air_button = ttk.Button(button_frame, text="Air OFF", command=toggle_air)
+air_button = ttk.Button(button_frame, text="Air ON", command=toggle_air)
 air_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
 
