@@ -137,13 +137,13 @@ depth_label = ttk.Label(face_tab, text="Depth of cut")
 depth_label.grid(row=12, column=5, padx=2, pady=10, sticky="w")
 depth_entry = ttk.Entry(face_tab, width=5)
 depth_entry.grid(row=12, column=6, padx=2, pady=10, sticky="ew")
-depth_entry.insert(0, "0.100")
+depth_entry.insert(0, "1.000")
 
 z_end_label = ttk.Label(face_tab, text="Z End")
 z_end_label.grid(row=13, column=0, padx=2, pady=10, sticky="w")
 z_end_entry = ttk.Entry(face_tab, width=5)
 z_end_entry.grid(row=13, column=1, padx=2, pady=10, sticky="ew")
-z_end_entry.insert(0, "-0.100")
+z_end_entry.insert(0, "-2.000")
 
 
 spiral_var = tk.BooleanVar()
@@ -317,64 +317,94 @@ def post():
         z_passes = int((z_start - z_end) / depth) + 1
 
         commands = ""
-
         if face_mode == "rectangular":
             print("Rectangular button selected!")
 
-            
-
-            # Move to z_start
+            # Move to Z start
             commands += f"G0 Z{z_start:.4f} (move to Z start)\n"
 
-            # Move to x_start, y_start
+            # Move to X start, Y start
             commands += f"G0 X{x_start:.4f} Y{y_start:.4f} (move to X/Y start)\n"
 
-            
             # Start at the current Z and move in steps toward z_end
             current_z = z_start
+            direction = 1  # 1 for forward pass, -1 for reverse pass
+
+            layer = 1  # Keep track of the current layer
+
             while current_z > z_end:
                 current_z -= depth
                 if current_z < z_end:
                     current_z = z_end  # Clamp to final Z depth
 
-                commands += f"G1 Z{current_z:.4f} (move to next cutting depth)\n"  # Lower to cutting depth
+                commands += f"G1 Z{current_z:.4f} F{z_feedrate} (move to next cutting depth)\n"  # Lower to cutting depth
 
-                # Generate raster pattern with CW/CCW transitions
                 y = y_start
-                direction = 1  # 1 for forward, -1 for reverse
+                x = x_start if direction == 1 else x_end  # Set correct X start position for the pass
+
                 while y <= y_end:
+                    commands += "(Moving forward)\n"
                     # Move along Y axis
                     commands += f"G1 Y{y:.4f} (linear move in Y)\n"
 
                     # Move along X axis
                     x_target = x_end if direction == 1 else x_start
-                    commands += f"G1 X{x_target+(direction * tool_diameter):.4f} (linear move in X)\n"
+                    commands += f"G1 X{x_target:.4f} (linear move in X)\n"
 
-                    # Increment Y for the next line
+                    # Increment Y for the next row
                     y += stepover
 
-                    # Check if we're done with all raster lines
                     if y > y_end:
-                        break
+                        break  # Stop if we've exceeded the Y boundary
 
                     # Circular transition to next raster line
                     x_next = x_target  # Maintain X position
-                    y_next = y  # Next Y position
-                    radius = tool_diameter / 4   # Set radius for the circular move
+                    y_next = y  # Move to the next row
+                    radius = tool_diameter / 4  # Set radius for the circular move
 
                     if direction == 1:  # Forward direction, use CW (G2)
-                        commands += f"G3 X{x_next+0.5:.4f} Y{y_next:.4f} I0 J{radius} (CW move)\n"
+                        commands += f"G3 X{x_next:.4f} Y{y_next:.4f} I0 J{radius} (CCW move)\n"
                     else:  # Reverse direction, use CCW (G3)
-                        commands += f"G2 X{x_next-0.5:.4f} Y{y_next:.4f} I0 J{radius} (CCW move)\n"
+                        commands += f"G2 X{x_next:.4f} Y{y_next:.4f} I0 J{radius} (CW move)\n"
 
-                    direction *= -1  # Reverse direction for the next raster line
+                    direction *= -1  # Reverse direction for next pass
+
+                # Reverse path when stepping down in Z
+                direction *= -1
+                y = y_end
+                x = x_end if direction == 1 else x_start  # Reverse start position for X
+
+                while y >= y_start:
+
+                    commands += "(Moving back)\n"
+                    # Move along Y axis in reverse
+                    commands += f"G1 Y{y:.4f} (reverse move in Y)\n"
+
+                    # Move along X axis in reverse
+                    x_target = x_start if direction == 1 else x_end
+                    commands += f"G1 X{x_target:.4f} (reverse move in X)\n"
+
+                    y -= stepover
+
+                    if y < y_start:
+                        break  # Stop if we move past the start
+
+                    # Circular transition back
+                    if direction == 1:
+                        commands += f"G3 X{x_target:.4f} Y{y:.4f} I0 J{-radius} (CCW move back)\n"
+                    else:
+                        commands += f"G2 X{x_target:.4f} Y{y:.4f} I0 J{-radius} (CW move back)\n"
+
+                    direction *= -1  # Reverse direction for next line
 
             # Retract tool to safe Z height
-            commands += f"G0 Z{z_clear:.4f}\n"
-            print("done writing rectangular mode..")
+            commands += f"G0 Z{z_clear:.4f} (retract tool to safe height)\n"
+            # Turn off spindle
+            commands += "M5 (spindle off)\n"
 
-            # commands are:
-            print(commands)
+            print("done writing rectangular mode..")
+            print(commands)  # Print generated G-code for debugging
+
 
 
         elif face_mode == "spiral":
